@@ -1,0 +1,29 @@
+# Dependabot — automated dependency-update PRs. GitHub-native (zero extra
+# infra), and supports Gradle's version catalog (gradle/libs.versions.toml)
+# directly, which is what this project uses for every dependency version.
+#
+# Grouped + weekly rather than one PR per bump: a daily flood of
+# single-library PRs is more noise than signal for a project this size;
+# weekly grouped PRs surface what changed without demanding constant review.
+version: 2
+updates:
+  - package-ecosystem: "gradle"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    groups:
+      gradle-dependencies:
+        patterns:
+          - "*"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    labels:
+      - "dependencies"

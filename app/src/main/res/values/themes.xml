@@ -1,0 +1,10 @@
+<resources>
+    <!-- Applied to the Activity window before Compose takes over (avoids a
+         white flash on cold start) — matches the desktop app's void
+         background (#010306) rather than using Android's default light theme. -->
+    <style name="Theme.Ventus" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/ventus_void</item>
+        <item name="android:statusBarColor">@color/ventus_void</item>
+        <item name="android:navigationBarColor">@color/ventus_void</item>
+    </style>
+</resources>

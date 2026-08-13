@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Placeholder launcher foreground — a simple "V" chevron in the desktop
+     app's primary accent color (the CSS "quincy" variable, #4db8ff). Real
+     branding/icon polish is M11, this just needs to compile and be visually
+     identifiable as "not broken" for now. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#4DB8FF"
+        android:pathData="M34,38 L54,74 L74,38 L64,38 L54,56 L44,38 Z" />
+</vector>

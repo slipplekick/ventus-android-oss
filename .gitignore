@@ -1,0 +1,22 @@
+*.iml
+.gradle/
+/local.properties
+/.idea/
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+.kotlin/
+local.properties
+/app/build
+*.apk
+*.aab
+
+# Release signing — never committed (self-signed key). keystore.properties
+# holds the passwords; the .jks/.keystore file itself is the key material.
+# Losing this file means every future release needs a new key (and users
+# must reinstall) — back it up somewhere safe outside this repo.
+keystore.properties
+*.jks
+*.keystore

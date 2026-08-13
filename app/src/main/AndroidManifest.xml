@@ -1,0 +1,79 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Android 13+ requires this to be requested at runtime before a
+         foreground service's notification can actually show. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <!-- Android 14 (API 34) requires every foreground service to declare a
+         type; none of the built-in ones (mediaPlayback, location, etc.)
+         describe "polling a remote API for track metadata" — specialUse is
+         the correct category, with NowPlayingService's own declared reason
+         (see below). -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <!-- Requested explicitly (not silently) with an in-app explanation before
+         asking — see M4 plan notes on Doze/battery-optimization fragility. -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+
+    <application
+        android:name=".VentusApplication"
+        android:allowBackup="false"
+        android:label="@string/app_name"
+        android:icon="@mipmap/ic_launcher"
+        android:theme="@style/Theme.Ventus"
+        android:usesCleartextTraffic="false">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:theme="@style/Theme.Ventus">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- AppAuth's own library manifest declares
+             net.openid.appauth.RedirectUriReceiverActivity and merges in an
+             intent-filter for "${appAuthRedirectScheme}://oauth/callback"
+             using the manifestPlaceholders set in app/build.gradle.kts
+             (appAuthRedirectScheme = "ventus") — no activity declaration
+             needed here, just the placeholder. Verify the merged manifest
+             (Build > Analyze APK, or `./gradlew :app:processDebugManifest`
+             then inspect the output) during M0 to confirm this actually
+             merged in as expected before trusting the redirect works. -->
+
+        <!-- Fix for AppAuth-Android issue #977 (confirmed still open,
+             2026-08-12): on Android 14, AuthorizationManagementActivity gets
+             destroyed/recreated instead of receiving the pending redirect
+             via onNewIntent(), silently dropping the login result. The
+             documented workaround (from the issue thread itself) is
+             overriding this library activity's launchMode from its default
+             singleTask to singleInstance — tools:node="merge" merges this
+             override into AppAuth's own manifest entry rather than
+             conflicting with it. This is a separate fix from pinning
+             androidx.browser (also done, in app/build.gradle.kts) — that
+             one addresses an unrelated Custom Tabs redirect/security issue,
+             not this recreation bug. -->
+        <activity
+            android:name="net.openid.appauth.AuthorizationManagementActivity"
+            android:exported="false"
+            android:launchMode="singleInstance"
+            tools:node="merge"
+            tools:replace="android:launchMode" />
+
+        <service
+            android:name=".service.NowPlayingService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Polls Spotify for the currently-playing track to show a live taste-match score" />
+        </service>
+
+    </application>
+
+</manifest>
