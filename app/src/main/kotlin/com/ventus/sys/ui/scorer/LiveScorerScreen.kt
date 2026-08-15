@@ -9,7 +9,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -122,8 +124,16 @@ private fun ScoredState(state: NowPlayingState) {
     val features = state.features
     val profile = state.profile
 
+    // verticalScroll, not just fillMaxSize() - TrackHeader + the radar chart
+    // + score + verdict + all 7 compare bars (Energy/Valence/Dance/Acoustic/
+    // Instrumental/Loudness/BPM) comfortably exceeds one screen's height on
+    // a normal phone, and without a scroll modifier here the last few bars
+    // were silently clipped off the bottom with no way to reach them at all
+    // - only 4 of the 7 bars were ever visible, not because fewer than 7 are
+    // computed (they all are, see CompareBars below) but because this
+    // Column had nowhere to put the overflow.
     Column(
-        modifier = Modifier.fillMaxSize().padding(20.dp),
+        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         TrackHeader(state)

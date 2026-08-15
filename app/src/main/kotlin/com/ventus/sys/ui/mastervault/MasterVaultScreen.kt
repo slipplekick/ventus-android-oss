@@ -78,42 +78,13 @@ fun MasterVaultScreen(viewModel: MasterVaultViewModel = hiltViewModel()) {
 
         val isSyncing = state.syncState is MasterVaultSyncState.Syncing
         ImportRow(input, isSyncing, viewModel)
-        // Stacked vertically, not side-by-side in a Row - "IMPORT ALL MY
-        // PLAYLISTS" already takes up most of the screen width on its own,
-        // and cramming a second button next to it squeezes that one down to
-        // near-zero width, wrapping its label one letter per line (the
-        // exact bug already fixed twice elsewhere in this app - see
-        // SignalsScreen's RangeSelector and this pattern's history).
-        OutlinedButton(onClick = viewModel::importAll, enabled = !isSyncing, modifier = Modifier.padding(top = 8.dp)) {
-            Text("⬡ IMPORT ALL MY PLAYLISTS")
-        }
-        OutlinedButton(
-            onClick = { exportLauncher.launch("ventus_master_vault_${System.currentTimeMillis()}.csv") },
-            enabled = state.stats.total > 0,
-            modifier = Modifier.padding(top = 8.dp),
-        ) {
-            Text("⬇ EXPORT CSV")
-        }
-
-        when (val sync = state.syncState) {
-            is MasterVaultSyncState.Error -> {
-                Text(text = "// ${sync.message}", color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 8.dp))
-            }
-
-            is MasterVaultSyncState.Done -> {
-                Text(text = "// ${sync.message}", style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 8.dp))
-            }
-
-            is MasterVaultSyncState.Syncing -> {
-                sync.progress?.let {
-                    Text(text = "// $it", style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 8.dp))
-                }
-            }
-
-            is MasterVaultSyncState.Idle -> {
-                Unit
-            }
-        }
+        ImportAllAndExportButtons(
+            isSyncing = isSyncing,
+            exportEnabled = state.stats.total > 0,
+            onImportAll = viewModel::importAll,
+            onExportCsv = { exportLauncher.launch("ventus_master_vault_${System.currentTimeMillis()}.csv") },
+        )
+        SyncStatusText(state.syncState)
 
         PlaylistFilter(state.playlists, state.selectedPlaylistId, viewModel::selectPlaylist, modifier = Modifier.padding(top = 12.dp))
 
@@ -123,29 +94,83 @@ fun MasterVaultScreen(viewModel: MasterVaultViewModel = hiltViewModel()) {
             modifier = Modifier.padding(top = 8.dp),
         )
 
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 4.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            // weight(1f) on the label, not the button - Row measures unweighted
-            // children (the button) at their natural size first, then gives the
-            // weighted Text whatever's left. Without this, neither child had a
-            // weight, so on the "ALL PLAYLISTS" label + "REMOVE THIS PLAYLIST"
-            // button combination there wasn't room for the button's normal pill
-            // shape - it got squeezed down to a near-circular blob overlapping
-            // the label.
-            Text(
-                text = if (state.selectedPlaylistId == null) "// INDEXED TRACKS — ALL PLAYLISTS" else "// TRACKS",
-                style = MaterialTheme.typography.labelMedium,
-                modifier = Modifier.weight(1f).padding(end = 8.dp),
-            )
-            OutlinedButton(onClick = viewModel::clearSelected) {
-                Text(if (state.selectedPlaylistId == null) "✕ CLEAR ALL" else "✕ REMOVE THIS PLAYLIST")
+        ClearRow(state.selectedPlaylistId, viewModel::clearSelected)
+
+        TrackList(state.tracks)
+    }
+}
+
+/**
+ * Stacked vertically, not side-by-side in a Row - "IMPORT ALL MY PLAYLISTS"
+ * already takes up most of the screen width on its own, and cramming a
+ * second button next to it squeezes that one down to near-zero width,
+ * wrapping its label one letter per line (the exact bug already fixed twice
+ * elsewhere in this app - see SignalsScreen's RangeSelector and this
+ * pattern's history).
+ */
+@Composable
+private fun ImportAllAndExportButtons(
+    isSyncing: Boolean,
+    exportEnabled: Boolean,
+    onImportAll: () -> Unit,
+    onExportCsv: () -> Unit,
+) {
+    OutlinedButton(onClick = onImportAll, enabled = !isSyncing, modifier = Modifier.padding(top = 8.dp)) {
+        Text("⬡ IMPORT ALL MY PLAYLISTS")
+    }
+    OutlinedButton(onClick = onExportCsv, enabled = exportEnabled, modifier = Modifier.padding(top = 8.dp)) {
+        Text("⬇ EXPORT CSV")
+    }
+}
+
+@Composable
+private fun SyncStatusText(syncState: MasterVaultSyncState) {
+    when (syncState) {
+        is MasterVaultSyncState.Error -> {
+            Text(text = "// ${syncState.message}", color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 8.dp))
+        }
+
+        is MasterVaultSyncState.Done -> {
+            Text(text = "// ${syncState.message}", style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 8.dp))
+        }
+
+        is MasterVaultSyncState.Syncing -> {
+            syncState.progress?.let {
+                Text(text = "// $it", style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 8.dp))
             }
         }
 
-        TrackList(state.tracks)
+        is MasterVaultSyncState.Idle -> {
+            Unit
+        }
+    }
+}
+
+@Composable
+private fun ClearRow(
+    selectedPlaylistId: String?,
+    onClear: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        // weight(1f) on the label, not the button - Row measures unweighted
+        // children (the button) at their natural size first, then gives the
+        // weighted Text whatever's left. Without this, neither child had a
+        // weight, so on the "ALL PLAYLISTS" label + "REMOVE THIS PLAYLIST"
+        // button combination there wasn't room for the button's normal pill
+        // shape - it got squeezed down to a near-circular blob overlapping
+        // the label.
+        Text(
+            text = if (selectedPlaylistId == null) "// INDEXED TRACKS — ALL PLAYLISTS" else "// TRACKS",
+            style = MaterialTheme.typography.labelMedium,
+            modifier = Modifier.weight(1f).padding(end = 8.dp),
+        )
+        OutlinedButton(onClick = onClear) {
+            Text(if (selectedPlaylistId == null) "✕ CLEAR ALL" else "✕ REMOVE THIS PLAYLIST")
+        }
     }
 }
 

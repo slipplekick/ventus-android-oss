@@ -138,13 +138,19 @@ private fun SpotifySetupSteps(onOpenDashboard: () -> Unit) {
                 .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp))
                 .padding(16.dp),
     ) {
-        Text("1. Create an app at the Spotify Developer Dashboard — any name/description is fine.", style = MaterialTheme.typography.bodySmall)
+        Text(
+            "1. Create an app at the Spotify Developer Dashboard — any name/description is fine.",
+            style = MaterialTheme.typography.bodySmall,
+        )
         Spacer(modifier = Modifier.height(4.dp))
         TextButton(onClick = onOpenDashboard) {
             Text("Open developer.spotify.com/dashboard ⟶", style = MaterialTheme.typography.labelSmall)
         }
         Spacer(modifier = Modifier.height(8.dp))
-        Text("2. When asked which APIs/SDKs you're using, check \"Web API\" — that's the only one VENTUS needs.", style = MaterialTheme.typography.bodySmall)
+        Text(
+            "2. When asked which APIs/SDKs you're using, check \"Web API\" — that's the only one VENTUS needs.",
+            style = MaterialTheme.typography.bodySmall,
+        )
         Spacer(modifier = Modifier.height(8.dp))
         Text("3. Under Redirect URIs, add exactly this (case-sensitive, no trailing slash):", style = MaterialTheme.typography.bodySmall)
         Spacer(modifier = Modifier.height(4.dp))

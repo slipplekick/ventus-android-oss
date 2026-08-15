@@ -6,8 +6,6 @@ import com.ventus.sys.data.remote.dto.CurrentlyPlayingResponse
 import com.ventus.sys.data.remote.dto.PlaylistItemsPageResponse
 import com.ventus.sys.data.remote.dto.PlaylistMetaResponse
 import com.ventus.sys.data.remote.dto.SpotifyQueueResponse
-import com.ventus.sys.data.remote.dto.SpotifySearchResponse
-import com.ventus.sys.data.remote.dto.SpotifyTrackDto
 import com.ventus.sys.data.remote.dto.UserPlaylistsPageResponse
 import retrofit2.Response
 import retrofit2.http.Body
@@ -26,10 +24,12 @@ private const val DEFAULT_PLAYLIST_FIELDS =
  * the live poll, and track-name resolution actually need. Other screens
  * (search, add-to-playlist, queue) add their own methods here following
  * this same pattern rather than defining everything speculatively upfront.
- * Playback transport lives in [PlaybackApi] instead, and top
- * tracks/artists/recently-played live in [SpotifyStatsApi] (the Signals
- * screen's endpoints) — both split out to avoid hitting detekt's
- * TooManyFunctions threshold on a single bloated interface.
+ * Playback transport lives in [PlaybackApi] instead, top tracks/artists/
+ * recently-played live in [SpotifyStatsApi] (the Signals screen's
+ * endpoints), and single-track lookup/search live in [SpotifySearchApi]
+ * (split out once playlist pagination pushed this interface to 11
+ * functions) — all split by concern rather than adding here and hitting
+ * detekt's TooManyFunctions threshold on a single bloated interface.
  *
  * Auth: token passed explicitly per-call via @Header, not a blanket OkHttp
  * interceptor — SpotifyRepository fetches a fresh token (PkceAuthManager,
@@ -83,21 +83,6 @@ interface SpotifyApi {
         @Header("Authorization") auth: String,
         @Url url: String,
     ): UserPlaylistsPageResponse
-
-    @GET("tracks/{id}")
-    suspend fun getTrack(
-        @Header("Authorization") auth: String,
-        @Path("id") id: String,
-    ): Response<SpotifyTrackDto>
-
-    /** Ports app.py's search_spotify (app.py:1600-1618) — track search for the Discover screen. */
-    @GET("search")
-    suspend fun search(
-        @Header("Authorization") auth: String,
-        @Query("q") query: String,
-        @Query("type") type: String = "track",
-        @Query("limit") limit: Int = 8,
-    ): SpotifySearchResponse
 
     /** Ports app.py's get_queue (app.py:1622-1663) — the Queue Analyzer screen's source. */
     @GET("me/player/queue")

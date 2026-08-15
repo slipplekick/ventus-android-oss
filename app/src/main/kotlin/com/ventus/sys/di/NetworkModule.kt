@@ -4,6 +4,7 @@ import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFact
 import com.ventus.sys.data.remote.PlaybackApi
 import com.ventus.sys.data.remote.ReccoBeatsApi
 import com.ventus.sys.data.remote.SpotifyApi
+import com.ventus.sys.data.remote.SpotifySearchApi
 import com.ventus.sys.data.remote.SpotifyStatsApi
 import dagger.Module
 import dagger.Provides
@@ -79,6 +80,12 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideSpotifyStatsApi(retrofit: Retrofit): SpotifyStatsApi = retrofit.create(SpotifyStatsApi::class.java)
+
+    // Single-track lookup/search — split into its own interface for the same
+    // TooManyFunctions reason as PlaybackApi/SpotifyStatsApi above.
+    @Provides
+    @Singleton
+    fun provideSpotifySearchApi(retrofit: Retrofit): SpotifySearchApi = retrofit.create(SpotifySearchApi::class.java)
 
     @Provides
     @Singleton

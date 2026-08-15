@@ -13,8 +13,21 @@ import javax.inject.Singleton
 
 private val MASTER_VAULT_CSV_HEADER =
     listOf(
-        "playlist_name", "track_id", "song", "artist", "is_ghost",
-        "energy", "valence", "danceability", "bpm", "acousticness", "instrumentalness", "loudness", "key", "mode", "camelot",
+        "playlist_name",
+        "track_id",
+        "song",
+        "artist",
+        "is_ghost",
+        "energy",
+        "valence",
+        "danceability",
+        "bpm",
+        "acousticness",
+        "instrumentalness",
+        "loudness",
+        "key",
+        "mode",
+        "camelot",
     )
 
 data class MasterVaultTrackUiItem(

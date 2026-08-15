@@ -2,6 +2,7 @@ package com.ventus.sys.data.repository
 
 import com.ventus.sys.data.auth.SpotifyTokenProvider
 import com.ventus.sys.data.remote.SpotifyApi
+import com.ventus.sys.data.remote.SpotifySearchApi
 import com.ventus.sys.data.remote.SpotifyStatsApi
 import com.ventus.sys.data.remote.dto.PlaylistItemEntryDto
 import com.ventus.sys.data.remote.dto.SpotifyTopArtistDto
@@ -38,16 +39,15 @@ data class NowPlaying(
 /**
  * Wraps [SpotifyApi] with fresh-token injection ([SpotifyTokenProvider]) and
  * pagination. Sentinel playlist ID for Liked Songs mirrors app.py's
- * LIKED_SONGS_SENTINEL (app.py:968) so callers (onboarding,
+ * LIKED_SONGS_SENTINEL (app.py:968) so callers (onboarding's sync,
  * TasteProfileRepository's sync) don't need their own special-casing — same
  * pattern, same reason.
  *
  * Playback transport (play/pause/skip/seek) lives in [PlaybackRepository]
- * instead of here — detekt's TooManyFunctions flags a class once it grows
- * past a function-count threshold, and this class already covers several
- * read endpoints (search, top tracks, recently-played, queue), so splitting
- * by concern (read vs. transport) is the sustainable fix rather than a
- * one-off threshold bump that just gets hit again later.
+ * instead of here — detekt's TooManyFunctions flagged this class approaching
+ * its threshold once search, top tracks, recently-played, and queue all
+ * needed a home too, so splitting by concern (read vs. transport) is the
+ * sustainable fix, not a one-off threshold bump that just gets hit again.
  */
 @Singleton
 class SpotifyRepository
@@ -55,6 +55,7 @@ class SpotifyRepository
     constructor(
         private val api: SpotifyApi,
         private val statsApi: SpotifyStatsApi,
+        private val searchApi: SpotifySearchApi,
         private val tokenProvider: SpotifyTokenProvider,
     ) {
         companion object {
@@ -112,8 +113,8 @@ class SpotifyRepository
 
         /**
          * Fully paginated - stopping at the first 50 (Spotify's max page
-         * size) would be a real gap, not a theoretical one: Master Vault's
-         * "Import All" would silently miss every playlist past #50 for an
+         * size) was a real gap, not a theoretical one: Master Vault's
+         * "Import All" silently missed every playlist past #50 for an
          * account with more than that. Follows `next` the same way
          * [getPlaylistTracks] already does for playlist items.
          */
@@ -132,17 +133,17 @@ class SpotifyRepository
 
         /**
          * Retries on 429 with backoff (mirrors ReccoBeatsRepository's own
-         * requestWithRetry) — VaultRepository's lazy name-resolution can
-         * call this for every vault-only track in a burst, which is enough
-         * volume to realistically hit Spotify's rate limit. A single
-         * silent failure here just means one track stays labeled
-         * "VAULT ONLY" instead of getting its real name back on retry.
+         * requestWithRetry) — added after a real 429 surfaced from
+         * VaultRepository's lazy name-resolution calling this for every
+         * vault-only track in a burst. A single silent failure here just
+         * means one track stays labeled "VAULT ONLY" instead of getting its
+         * real name back on retry.
          */
         suspend fun getTrack(trackId: String): SpotifyTrackDto? {
             val auth = tokenProvider.freshAuthHeader()
             var attempt = 0
             while (attempt < MAX_RETRIES) {
-                val response = api.getTrack(auth, trackId)
+                val response = searchApi.getTrack(auth, trackId)
                 if (response.code() != HTTP_TOO_MANY_REQUESTS) {
                     return if (response.isSuccessful) response.body() else null
                 }
@@ -153,7 +154,7 @@ class SpotifyRepository
         }
 
         /** Ports app.py's search_spotify (app.py:1600-1618) — track search for the Discover screen. */
-        suspend fun search(query: String): List<SpotifyTrackDto> = api.search(tokenProvider.freshAuthHeader(), query).tracks.items
+        suspend fun search(query: String): List<SpotifyTrackDto> = searchApi.search(tokenProvider.freshAuthHeader(), query).tracks.items
 
         /** Null means no active player (app.py's own 404 "No active player" case, app.py:1628) — not an error to surface loudly. */
         suspend fun getQueue(): List<SpotifyTrackDto>? {

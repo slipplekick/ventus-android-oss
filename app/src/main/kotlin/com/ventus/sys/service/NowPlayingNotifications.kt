@@ -56,7 +56,7 @@ class NowPlayingNotifications(
             .Builder(service, CHANNEL_ID)
             .setContentTitle("VENTUS // SYS")
             .setContentText(text)
-            // TODO: dedicated flat/monochrome notification icon —
+            // Known polish item: a dedicated flat/monochrome notification icon —
             // ic_launcher_foreground is a full-color adaptive-icon layer, not
             // designed for the status bar. Works, doesn't look sharp.
             .setSmallIcon(R.drawable.ic_launcher_foreground)

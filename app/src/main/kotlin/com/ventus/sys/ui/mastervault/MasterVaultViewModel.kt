@@ -171,6 +171,11 @@ class MasterVaultViewModel
                     } catch (e: IOException) {
                         failedPlaylists += playlist.name
                         Log.w(TAG, "importAll: \"${playlist.name}\" (${playlist.id}) failed", e)
+                    } catch (e: CancellationException) {
+                        // Must be its own catch, ahead of the broad Exception one below -
+                        // a coroutine cancellation (e.g. leaving the screen mid-import)
+                        // has to propagate, not get swallowed as "one playlist failed."
+                        throw e
                     } catch (
                         @Suppress("TooGenericExceptionCaught")
                         e: Exception,
@@ -181,7 +186,6 @@ class MasterVaultViewModel
                         // the other 13 - same "keep going" principle as syncPlaylist's own
                         // callers, just widened after a real sweep hit something HttpException/
                         // IOException alone didn't catch and needed a rebuild to even see why.
-                        if (e is CancellationException) throw e
                         failedPlaylists += playlist.name
                         Log.w(TAG, "importAll: \"${playlist.name}\" (${playlist.id}) failed", e)
                     }
