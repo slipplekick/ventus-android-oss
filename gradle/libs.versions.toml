@@ -2,31 +2,31 @@
 # scattered across build.gradle.kts files. Think of this like a
 # requirements.txt with named entries instead of bare package==version lines.
 [versions]
-agp = "8.13.0"
-kotlin = "2.0.21"
-ksp = "2.0.21-1.0.28"
-coreKtx = "1.15.0"
+agp = "9.3.1"
+kotlin = "2.4.10"
+ksp = "2.3.11"
+coreKtx = "1.19.0"
 lifecycle = "2.8.7"
-activityCompose = "1.9.3"
+activityCompose = "1.13.0"
 composeBom = "2026.03.01"
-room = "2.6.1"
+room = "2.8.4"
 retrofit = "3.0.0"
-okhttp = "4.12.0"
-kotlinxSerialization = "1.7.3"
-kotlinxCoroutines = "1.9.0"
+okhttp = "5.4.0"
+kotlinxSerialization = "1.11.0"
+kotlinxCoroutines = "1.11.0"
 appauth = "0.11.1"
 # Pinned explicitly rather than trusting AppAuth's transitive version — needed
 # for the AppAuth-Android issue #977 Custom Tabs fix (see PkceAuthManager).
 androidxBrowser = "1.10.0"
-hilt = "2.52"
-hiltNavigationCompose = "1.2.0"
+hilt = "2.60.1"
+hiltNavigationCompose = "1.4.0"
 navigationCompose = "2.8.4"
 workManager = "2.9.1"
 coil = "2.7.0"
-securityCrypto = "1.1.0-alpha06"
+securityCrypto = "1.1.0"
 junit = "4.13.2"
-androidxJunit = "1.2.1"
-espresso = "3.6.1"
+androidxJunit = "1.3.0"
+espresso = "3.7.0"
 # Latest stable (3.x is alpha-only so far) — debug-only, catches
 # Activity/Service leaks, which matters given NowPlayingService's
 # foreground-service lifetime.
