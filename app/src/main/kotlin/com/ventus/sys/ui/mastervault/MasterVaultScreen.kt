@@ -1,5 +1,7 @@
 package com.ventus.sys.ui.mastervault
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,13 +28,17 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.ventus.sys.data.local.MasterVaultPlaylistSummary
 import com.ventus.sys.data.repository.MasterVaultTrackUiItem
+import kotlinx.coroutines.launch
 
 private const val ALL_PLAYLISTS_LABEL = "◈ ALL PLAYLISTS — everything ever imported"
 
@@ -42,6 +48,23 @@ private const val ALL_PLAYLISTS_LABEL = "◈ ALL PLAYLISTS — everything ever i
 fun MasterVaultScreen(viewModel: MasterVaultViewModel = hiltViewModel()) {
     val state by viewModel.uiState.collectAsState()
     val input by viewModel.playlistInput.collectAsState()
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+
+    // buildCsv() is suspend (reads the DB fresh at export time, not off a
+    // Flow already collected into state) - the SAF launcher callback itself
+    // can't suspend, so the CSV has to be built in a coroutine and handed to
+    // the OutputStream once both the content and the destination URI are
+    // ready, not assumed to already be sitting in memory.
+    val exportLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) { uri ->
+            uri?.let {
+                coroutineScope.launch {
+                    val csv = viewModel.buildCsv()
+                    context.contentResolver.openOutputStream(it)?.use { stream -> stream.write(csv.toByteArray()) }
+                }
+            }
+        }
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         Text(text = "⬡ MASTER VAULT", style = MaterialTheme.typography.headlineSmall)
@@ -53,7 +76,24 @@ fun MasterVaultScreen(viewModel: MasterVaultViewModel = hiltViewModel()) {
             modifier = Modifier.padding(top = 4.dp, bottom = 12.dp),
         )
 
-        ImportRow(input, state.syncState is MasterVaultSyncState.Syncing, viewModel)
+        val isSyncing = state.syncState is MasterVaultSyncState.Syncing
+        ImportRow(input, isSyncing, viewModel)
+        // Stacked vertically, not side-by-side in a Row - "IMPORT ALL MY
+        // PLAYLISTS" already takes up most of the screen width on its own,
+        // and cramming a second button next to it squeezes that one down to
+        // near-zero width, wrapping its label one letter per line (the
+        // exact bug already fixed twice elsewhere in this app - see
+        // SignalsScreen's RangeSelector and this pattern's history).
+        OutlinedButton(onClick = viewModel::importAll, enabled = !isSyncing, modifier = Modifier.padding(top = 8.dp)) {
+            Text("⬡ IMPORT ALL MY PLAYLISTS")
+        }
+        OutlinedButton(
+            onClick = { exportLauncher.launch("ventus_master_vault_${System.currentTimeMillis()}.csv") },
+            enabled = state.stats.total > 0,
+            modifier = Modifier.padding(top = 8.dp),
+        ) {
+            Text("⬇ EXPORT CSV")
+        }
 
         when (val sync = state.syncState) {
             is MasterVaultSyncState.Error -> {
@@ -64,7 +104,13 @@ fun MasterVaultScreen(viewModel: MasterVaultViewModel = hiltViewModel()) {
                 Text(text = "// ${sync.message}", style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 8.dp))
             }
 
-            else -> {
+            is MasterVaultSyncState.Syncing -> {
+                sync.progress?.let {
+                    Text(text = "// $it", style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 8.dp))
+                }
+            }
+
+            is MasterVaultSyncState.Idle -> {
                 Unit
             }
         }
@@ -82,9 +128,17 @@ fun MasterVaultScreen(viewModel: MasterVaultViewModel = hiltViewModel()) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            // weight(1f) on the label, not the button - Row measures unweighted
+            // children (the button) at their natural size first, then gives the
+            // weighted Text whatever's left. Without this, neither child had a
+            // weight, so on the "ALL PLAYLISTS" label + "REMOVE THIS PLAYLIST"
+            // button combination there wasn't room for the button's normal pill
+            // shape - it got squeezed down to a near-circular blob overlapping
+            // the label.
             Text(
                 text = if (state.selectedPlaylistId == null) "// INDEXED TRACKS — ALL PLAYLISTS" else "// TRACKS",
                 style = MaterialTheme.typography.labelMedium,
+                modifier = Modifier.weight(1f).padding(end = 8.dp),
             )
             OutlinedButton(onClick = viewModel::clearSelected) {
                 Text(if (state.selectedPlaylistId == null) "✕ CLEAR ALL" else "✕ REMOVE THIS PLAYLIST")
@@ -172,7 +226,12 @@ private fun TrackList(tracks: List<MasterVaultTrackUiItem>) {
 
 @Composable
 private fun TrackRow(track: MasterVaultTrackUiItem) {
-    Surface(modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
+    // Explicit Color.Transparent - Surface with no color param defaults to
+    // MaterialTheme.colorScheme.surface, a visibly different (lighter,
+    // blue-tinted) shade from the actual screen background, painting a
+    // mismatched-color box behind every row. Same root cause and fix as
+    // SignalsScreen's RecentRow.
+    Surface(modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp), color = Color.Transparent) {
         Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = track.song.ifBlank { track.id }, style = MaterialTheme.typography.bodyLarge)

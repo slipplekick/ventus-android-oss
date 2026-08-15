@@ -24,13 +24,13 @@ class ReccoBeatsRepository
         private val api: ReccoBeatsApi,
     ) {
         /**
-         * Resolves audio features for a batch of Spotify track IDs, including
-         * href-based ID extraction and a defensive "scale x100 only if the API
-         * returned a 0.0-1.0 float" rescale (tempo/loudness/key/mode are
+         * Ports fetch_reccobeats_batch() exactly — app.py:593-646, incl. the
+         * href-based ID extraction and the "scale x100 only if the API returned
+         * a 0.0-1.0 float" defensive rescale (tempo/loudness/key/mode are
          * already in native units, never rescaled). Silently returns an empty
-         * map on any failure — a failed batch just means those tracks stay
-         * unresolved, not a thrown exception the poller/sync loop needs to
-         * handle specially.
+         * map on any failure — matches desktop's own behavior (a failed batch
+         * just means those tracks stay unresolved, not a thrown exception the
+         * poller/sync loop needs to handle specially).
          *
          * Retry-with-backoff on 429: ReccoBeats publishes no numeric rate
          * limit, so capped exponential backoff is used instead of a guessed
@@ -93,10 +93,11 @@ class ReccoBeatsRepository
 private fun scaleIfFraction(value: Double): Double = if (value <= SCALE_THRESHOLD) value * SCALE_FACTOR else value
 
 /**
- * Completeness guard, not a parity change: ReccoBeatsFeatureDto's fields all
- * default to 0.0 (matching app.py's own `raw.get('energy', 0) or 0`,
- * app.py:624-628) because that default only covers a genuinely-missing key -
- * but it can't tell "this track scored 0" from "ReccoBeats sent a
+ * Completeness guard, not a parity change: ReccoBeatsFeatureDto's fields are
+ * nullable, coalesced to 0.0 in toDomain() (matching app.py's own
+ * `raw.get('energy', 0) or 0`, app.py:624-628, which treats missing-or-null
+ * the same way) - but that coalescing alone can't tell "this track scored 0"
+ * from "ReccoBeats sent a
  * degenerate/partial entry" apart. Auditing 194 real synced tracks this
  * session found zero cases where energy/valence/dance/acoustic/instrumental
  * were ALL exactly 0.0 together (real tracks always vary across at least
@@ -112,13 +113,13 @@ private fun TrackFeatures.looksLikeMissingData(): Boolean =
 private fun ReccoBeatsFeatureDto.toDomain(resolvedId: String) =
     TrackFeatures(
         id = resolvedId,
-        energy = scaleIfFraction(energy),
-        valence = scaleIfFraction(valence),
-        danceability = scaleIfFraction(danceability),
-        bpm = tempo,
-        acousticness = scaleIfFraction(acousticness),
-        instrumentalness = scaleIfFraction(instrumentalness),
-        loudness = loudness,
+        energy = scaleIfFraction(energy ?: 0.0),
+        valence = scaleIfFraction(valence ?: 0.0),
+        danceability = scaleIfFraction(danceability ?: 0.0),
+        bpm = tempo ?: 0.0,
+        acousticness = scaleIfFraction(acousticness ?: 0.0),
+        instrumentalness = scaleIfFraction(instrumentalness ?: 0.0),
+        loudness = loudness ?: 0.0,
         key = key ?: -1,
         mode = mode ?: 1,
     )

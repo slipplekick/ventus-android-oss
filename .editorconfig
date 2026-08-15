@@ -7,6 +7,5 @@ root = true
 # Composable functions are conventionally PascalCase (Compose's own naming
 # convention — a composable behaves like a UI component, so it's named like
 # one, e.g. `VentusTheme`). Requires ktlint 1.0.1+; this project pins 1.8.0.
-# Confirmed live against this project's own placeholder Theme.kt before
-# adding — see also app/build.gradle.kts' detekt{} FunctionNaming note.
+# See also app/build.gradle.kts' detekt{} FunctionNaming note.
 ktlint_function_naming_ignore_when_annotated_with = Composable

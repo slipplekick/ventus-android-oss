@@ -4,10 +4,18 @@ import com.ventus.sys.data.local.MasterVaultMembershipDao
 import com.ventus.sys.data.local.MasterVaultMembershipEntity
 import com.ventus.sys.data.local.MasterVaultPlaylistSummary
 import com.ventus.sys.domain.Camelot
+import com.ventus.sys.domain.model.TrackFeatures
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 import javax.inject.Singleton
+
+private val MASTER_VAULT_CSV_HEADER =
+    listOf(
+        "playlist_name", "track_id", "song", "artist", "is_ghost",
+        "energy", "valence", "danceability", "bpm", "acousticness", "instrumentalness", "loudness", "key", "mode", "camelot",
+    )
 
 data class MasterVaultTrackUiItem(
     val id: String,
@@ -140,4 +148,48 @@ class MasterVaultRepository
         suspend fun clear(playlistId: String?) {
             if (playlistId.isNullOrBlank()) dao.deleteAll() else dao.deleteByPlaylist(playlistId)
         }
+
+        /**
+         * Full-precision export (every resolved feature, not just the
+         * truncated Int display fields [observeTracks] hands the UI) — for
+         * pulling the collected data off the device entirely, not just
+         * browsing it in-app. Null/blank playlistId exports everything ever
+         * imported, same convention as [observeTracks]/[clear]. One-shot
+         * (.first()), not a live Flow - a CSV export is a snapshot by
+         * nature, and the caller (ViewModel) only needs this at the moment
+         * the user taps Export.
+         */
+        suspend fun buildCsv(playlistId: String?): String {
+            val membership = if (playlistId.isNullOrBlank()) dao.observeAll().first() else dao.observeByPlaylist(playlistId).first()
+            val vaultById = vaultRepository.observeAll().first().associateBy { it.id }
+            val rows = membership.map { it.toCsvRow(vaultById[it.trackId]) }
+            return (listOf(MASTER_VAULT_CSV_HEADER) + rows).joinToString("\n") { row -> row.joinToString(",") { csvEscape(it) } }
+        }
+    }
+
+private fun MasterVaultMembershipEntity.toCsvRow(feature: TrackFeatures?): List<String> =
+    listOf(
+        playlistName,
+        trackId,
+        song,
+        artist,
+        (feature == null).toString(),
+        feature?.energy?.toString() ?: "",
+        feature?.valence?.toString() ?: "",
+        feature?.danceability?.toString() ?: "",
+        feature?.bpm?.toString() ?: "",
+        feature?.acousticness?.toString() ?: "",
+        feature?.instrumentalness?.toString() ?: "",
+        feature?.loudness?.toString() ?: "",
+        feature?.key?.toString() ?: "",
+        feature?.mode?.toString() ?: "",
+        feature?.let { Camelot.get(it.key, it.mode) } ?: "",
+    )
+
+/** Quotes a field only when it needs it (contains a comma, quote, or newline) — matches standard CSV escaping. */
+private fun csvEscape(field: String): String =
+    if (field.any { it == ',' || it == '"' || it == '\n' }) {
+        "\"${field.replace("\"", "\"\"")}\""
+    } else {
+        field
     }

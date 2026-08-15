@@ -22,6 +22,11 @@ object SpotifyAuthConfig {
             "user-read-recently-played",
             "user-library-read",
             "playlist-read-private",
+            // Without this, Spotify's own /playlists/{id} returns the name
+            // fine (200) but /playlists/{id}/items throws a clean 403 for
+            // any playlist the user collaborates on rather than solely
+            // owns - playlist-read-private alone doesn't cover that case.
+            "playlist-read-collaborative",
             "playlist-modify-public",
             "playlist-modify-private",
             "user-follow-read",

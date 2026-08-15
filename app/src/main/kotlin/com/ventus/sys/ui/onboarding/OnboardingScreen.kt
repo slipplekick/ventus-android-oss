@@ -35,6 +35,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
@@ -191,7 +192,11 @@ private fun PlaylistRow(
     playlist: UserPlaylistDto,
     onClick: () -> Unit,
 ) {
-    Surface(onClick = onClick, modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+    // Explicit Color.Transparent - same fix as every other row Surface in
+    // the app: no color param defaults to MaterialTheme.colorScheme.surface,
+    // a visibly different shade from the actual screen background. Click
+    // ripple/indication still works fine on a transparent Surface.
+    Surface(onClick = onClick, modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), color = Color.Transparent) {
         Row(modifier = Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             PlaylistCover(playlist.coverUrl)
             Column(modifier = Modifier.weight(1f).padding(start = 10.dp)) {

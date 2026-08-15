@@ -9,11 +9,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
@@ -22,12 +28,16 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.ventus.sys.data.local.AppPreferences
 import com.ventus.sys.data.local.PlaylistPresetEntity
+import com.ventus.sys.data.remote.dto.UserPlaylistDto
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -79,12 +89,14 @@ private fun AutoSyncSection(
             Switch(checked = state.autoSyncEnabled, onCheckedChange = viewModel::setEnabled)
         }
 
+        MyPlaylistsDropdown(state.myPlaylists, viewModel::selectAutoSyncPlaylist, modifier = Modifier.padding(top = 12.dp))
+
         OutlinedTextField(
             value = state.playlistInput,
             onValueChange = viewModel::onPlaylistInputChanged,
             label = { Text("Target playlist ID or URL") },
             singleLine = true,
-            modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
         )
 
         if (state.enableError != null) {
@@ -155,6 +167,8 @@ private fun AutoAddSection(
 
         PresetPicker(state, viewModel)
 
+        MyPlaylistsDropdown(state.myPlaylists, viewModel::selectAutoAddPlaylist, modifier = Modifier.padding(top = 12.dp))
+
         OutlinedTextField(
             value = state.autoAddPlaylistInput,
             onValueChange = viewModel::onAutoAddPlaylistInputChanged,
@@ -202,6 +216,49 @@ private fun PresetPicker(
                 label = { Text(preset.name) },
                 modifier = Modifier.padding(end = 8.dp),
             )
+        }
+    }
+}
+
+/**
+ * Picks one of the logged-in account's own playlists straight from a live
+ * list instead of making the user go find and paste a share link for a
+ * setting that's always about their own library. Selecting an entry just
+ * fills the manual text field below it with that playlist's ID (via
+ * [onSelect]) rather than replacing it outright - the field stays the
+ * source of truth, so pasting an ID directly (e.g. a playlist beyond the
+ * first 50, [SpotifyRepository.getUserPlaylists]'s own page-size cap)
+ * still works exactly as before.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun MyPlaylistsDropdown(
+    playlists: List<UserPlaylistDto>,
+    onSelect: (UserPlaylistDto) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    if (playlists.isEmpty()) return
+    var expanded by remember { mutableStateOf(false) }
+    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }, modifier = modifier) {
+        OutlinedTextField(
+            value = "",
+            onValueChange = {},
+            readOnly = true,
+            placeholder = { Text("Pick from your playlists…") },
+            label = { Text("Your playlists") },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable),
+        )
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            playlists.forEach { playlist ->
+                DropdownMenuItem(
+                    text = { Text("${playlist.name} (${playlist.trackCount})") },
+                    onClick = {
+                        onSelect(playlist)
+                        expanded = false
+                    },
+                )
+            }
         }
     }
 }

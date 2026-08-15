@@ -4,7 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ventus.sys.data.local.AppPreferences
 import com.ventus.sys.data.local.PlaylistPresetEntity
+import com.ventus.sys.data.remote.dto.UserPlaylistDto
 import com.ventus.sys.data.repository.PlaylistPresetRepository
+import com.ventus.sys.data.repository.SpotifyRepository
 import com.ventus.sys.domain.extractSpotifyId
 import com.ventus.sys.service.AutoAddStateHolder
 import com.ventus.sys.service.AutoAddStatus
@@ -15,6 +17,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import retrofit2.HttpException
+import java.io.IOException
 import javax.inject.Inject
 
 data class SettingsUiState(
@@ -31,6 +35,14 @@ data class SettingsUiState(
     val presets: List<PlaylistPresetEntity> = emptyList(),
     val newPresetName: String = "",
     val newPresetId: String = "",
+    // Own-account playlists for the target-playlist dropdowns below - both
+    // Auto-Sync and Auto-Add previously only offered a raw "paste an ID or
+    // URL" field for a playlist that's always the user's own, which needed
+    // them to go find and copy a Spotify share link just to fill in a
+    // setting about their own library. Empty (not an error state) if the
+    // fetch fails - the manual paste field is still right there as a
+    // fallback, same as it always was.
+    val myPlaylists: List<UserPlaylistDto> = emptyList(),
 )
 
 /**
@@ -46,6 +58,7 @@ class SettingsViewModel
     constructor(
         private val appPreferences: AppPreferences,
         private val playlistPresetRepository: PlaylistPresetRepository,
+        private val spotifyRepository: SpotifyRepository,
         autoSyncStateHolder: AutoSyncStateHolder,
         autoAddStateHolder: AutoAddStateHolder,
     ) : ViewModel() {
@@ -78,6 +91,33 @@ class SettingsViewModel
                     _uiState.value = _uiState.value.copy(presets = presets)
                 }
             }
+            viewModelScope.launch {
+                val playlists =
+                    try {
+                        spotifyRepository.getUserPlaylists()
+                    } catch (
+                        @Suppress("SwallowedException")
+                        e: IOException,
+                    ) {
+                        // Non-critical - the manual paste field still works if this
+                        // fails, so there's nothing worth surfacing as an error here.
+                        return@launch
+                    } catch (
+                        @Suppress("SwallowedException")
+                        e: HttpException,
+                    ) {
+                        return@launch
+                    }
+                _uiState.value = _uiState.value.copy(myPlaylists = playlists)
+            }
+        }
+
+        fun selectAutoSyncPlaylist(playlist: UserPlaylistDto) {
+            onPlaylistInputChanged(playlist.id)
+        }
+
+        fun selectAutoAddPlaylist(playlist: UserPlaylistDto) {
+            onAutoAddPlaylistInputChanged(playlist.id)
         }
 
         fun onPlaylistInputChanged(value: String) {

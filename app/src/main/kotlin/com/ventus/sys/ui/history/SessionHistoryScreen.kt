@@ -20,6 +20,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -80,7 +81,11 @@ fun SessionHistoryScreen(viewModel: SessionHistoryViewModel = hiltViewModel()) {
 
 @Composable
 private fun HistoryRow(entry: SessionHistoryEntry) {
-    Surface(modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
+    // Explicit Color.Transparent - Surface with no color param defaults to
+    // MaterialTheme.colorScheme.surface, a visibly different shade from the
+    // actual screen background - same fix as Signals/Master Vault's row
+    // Surfaces.
+    Surface(modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp), color = Color.Transparent) {
         Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = ROW_TIME_FORMAT.format(Date(entry.timestampMs)),

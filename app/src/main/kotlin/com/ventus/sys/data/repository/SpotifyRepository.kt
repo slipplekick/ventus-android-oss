@@ -111,21 +111,32 @@ class SpotifyRepository
             runCatching { api.getPlaylistMeta(tokenProvider.freshAuthHeader(), playlistId).name }.getOrDefault(playlistId)
 
         /**
-         * First 50 playlists only (Spotify's max page size) — not fully
-         * paginated yet. Covers the overwhelming majority of users for the
-         * onboarding picker; revisit with real pagination (needs its own
-         * @Url-following overload, since this endpoint's item shape differs
-         * from [SpotifyApi.getPage]'s) if that turns out to matter in practice.
+         * Fully paginated - stopping at the first 50 (Spotify's max page
+         * size) would be a real gap, not a theoretical one: Master Vault's
+         * "Import All" would silently miss every playlist past #50 for an
+         * account with more than that. Follows `next` the same way
+         * [getPlaylistTracks] already does for playlist items.
          */
-        suspend fun getUserPlaylists(): List<UserPlaylistDto> = api.getUserPlaylists(tokenProvider.freshAuthHeader()).items.filterNotNull()
+        suspend fun getUserPlaylists(): List<UserPlaylistDto> {
+            val auth = tokenProvider.freshAuthHeader()
+            val allItems = mutableListOf<UserPlaylistDto>()
+
+            var page = api.getUserPlaylists(auth)
+            allItems += page.items.filterNotNull()
+            while (page.next != null) {
+                page = api.getUserPlaylistsPage(auth, page.next!!)
+                allItems += page.items.filterNotNull()
+            }
+            return allItems
+        }
 
         /**
          * Retries on 429 with backoff (mirrors ReccoBeatsRepository's own
-         * requestWithRetry) — VaultRepository's lazy name-resolution can call
-         * this for every vault-only track in a burst, which is enough volume
-         * to realistically hit Spotify's rate limit. A single silent failure
-         * here just means one track stays labeled "VAULT ONLY" instead of
-         * getting its real name back on retry.
+         * requestWithRetry) — VaultRepository's lazy name-resolution can
+         * call this for every vault-only track in a burst, which is enough
+         * volume to realistically hit Spotify's rate limit. A single
+         * silent failure here just means one track stays labeled
+         * "VAULT ONLY" instead of getting its real name back on retry.
          */
         suspend fun getTrack(trackId: String): SpotifyTrackDto? {
             val auth = tokenProvider.freshAuthHeader()

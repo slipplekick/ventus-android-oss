@@ -77,6 +77,13 @@ interface SpotifyApi {
         @Query("limit") limit: Int = 50,
     ): UserPlaylistsPageResponse
 
+    /** Follows a `next` pagination URL for the user's playlists list — same pattern as [getPage] for playlist items. */
+    @GET
+    suspend fun getUserPlaylistsPage(
+        @Header("Authorization") auth: String,
+        @Url url: String,
+    ): UserPlaylistsPageResponse
+
     @GET("tracks/{id}")
     suspend fun getTrack(
         @Header("Authorization") auth: String,

@@ -47,9 +47,9 @@ private const val MIN_DURATION_MS = 1L
  * enableEdgeToEdge(), so without this the Prev/Play/Next row draws under
  * the system nav bar instead of above it. Material3's own NavigationBar
  * composable does this internally; a custom composable like this one has
- * to opt in itself. Confirmed live on-device (vivo, 3-button nav): taps on
- * Next/Play landed on the system nav bar instead of this row until this
- * was added — a real, reproducible dead-tap-target bug, not a hypothetical.
+ * to opt in itself. Without it (confirmed on a 3-button-nav device), taps
+ * on Next/Play land on the system nav bar instead of this row — a real,
+ * reproducible dead-tap-target bug, not a hypothetical.
  */
 @Composable
 fun TransportBar(viewModel: TransportBarViewModel = hiltViewModel()) {

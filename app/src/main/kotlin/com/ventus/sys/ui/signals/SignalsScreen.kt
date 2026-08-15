@@ -1,5 +1,6 @@
 package com.ventus.sys.ui.signals
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -11,8 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
@@ -27,6 +27,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -65,7 +66,19 @@ private fun RangeSelector(
     selected: SignalsRange,
     onSelect: (SignalsRange) -> Unit,
 ) {
-    Row(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+    // Horizontally scrollable, not a plain fillMaxWidth() Row - three chips
+    // ("LAST 4 WEEKS", "LAST 6 MONTHS", "ALL TIME") don't reliably fit one
+    // screen width at normal font scale, and a plain Row with no weight/
+    // scroll handling squeezes whichever chip runs out of room down to
+    // whatever's left, wrapping its label one letter per line instead of
+    // just scrolling into view.
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState())
+                .padding(16.dp),
+    ) {
         SignalsRange.entries.forEachIndexed { index, range ->
             if (index > 0) Spacer(modifier = Modifier.width(8.dp))
             FilterChip(
@@ -130,9 +143,17 @@ private fun RecentSection(state: SignalsSectionState<RecentTrackUiItem>) {
 
 @Composable
 private fun RecentRow(track: RecentTrackUiItem) {
+    // Transparent, not MaterialTheme.colorScheme.surface, for the
+    // non-highlighted case - surface is a visibly different (lighter,
+    // blue-tinted) shade from the screen's actual background, and every
+    // row got wrapped in this Surface regardless of isHighScore, not just
+    // the ones meant to stand out. That painted a mismatched-color box
+    // behind every single row instead of leaving ordinary rows blending
+    // into the background the way TopTracksSection/TopArtistsSection's
+    // plain (non-Surface-wrapped) rows already correctly do.
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        color = if (track.isHighScore) MaterialTheme.colorScheme.primary.copy(alpha = 0.08f) else MaterialTheme.colorScheme.surface,
+        color = if (track.isHighScore) MaterialTheme.colorScheme.primary.copy(alpha = 0.08f) else Color.Transparent,
     ) {
         Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             CoverArt(track.albumArtUrl, size = 44.dp, shape = RoundedCornerShape(4.dp))

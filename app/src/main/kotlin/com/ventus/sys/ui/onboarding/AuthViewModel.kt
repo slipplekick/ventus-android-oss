@@ -15,10 +15,10 @@ import net.openid.appauth.AuthState
 import net.openid.appauth.AuthorizationException
 import javax.inject.Inject
 
-// Live device testing found the ActivityResult callback can still land
-// successfully a moment after a process restart (Android's own state-restore
-// survives a plain process kill, just not vivo's more destructive one) - so
-// checking the pending-login flag immediately on init produced a false-positive
+// The ActivityResult callback can still land successfully a moment after a
+// process restart (Android's own state-restore survives a plain process
+// kill, just not some OEMs' more destructive one) - so checking the
+// pending-login flag immediately on init would produce a false-positive
 // error flash on runs that were about to succeed anyway. This grace period
 // gives that callback a chance to arrive and clear the flag itself first.
 private const val LOGIN_RECOVERY_GRACE_PERIOD_MS = 4000L

@@ -663,9 +663,8 @@ style:
   MaxLineLength:
     active: true
     # Matches ktlint's official Kotlin style (140), not detekt's own default
-    # (120) — the two disagreeing caused ktlint to auto-collapse a line
-    # detekt then flagged as too long, an unfixable ping-pong at 120.
-    # Confirmed live against this project's own PkceAuthManager.kt.
+    # (120) — the two disagreeing causes ktlint to auto-collapse a line
+    # detekt then flags as too long, an unfixable ping-pong at 120.
     maxLineLength: 140
     excludePackageStatements: true
     excludeImportStatements: true

@@ -15,7 +15,13 @@ data class SpotifyImageDto(
 
 @Serializable
 data class SpotifyArtistDto(
-    val name: String,
+    // Nullable, not a plain String - Spotify sends an explicit JSON `null`
+    // here for some malformed/spoken-word entries (e.g. an audiobook
+    // chapter's artist object with "name":null), same "default only covers
+    // missing-key, not explicit null" trap as SpotifyAlbumDto.images below.
+    // SpotifyTrackDto.artistName's existing `?: "Unknown"` fallback already
+    // covers this once name is nullable.
+    val name: String? = null,
 )
 
 @Serializable
@@ -115,7 +121,7 @@ data class UserPlaylistDto(
     val images: List<SpotifyImageDto>? = null,
     val owner: UserPlaylistOwnerDto = UserPlaylistOwnerDto(),
     // Current Spotify responses use "items.total"; "tracks.total" is kept
-    // as a fallback for older API versions.
+    // as a fallback for older API versions — app.py:2329-2331's own comment.
     val items: UserPlaylistTrackCountDto? = null,
     val tracks: UserPlaylistTrackCountDto? = null,
 ) {

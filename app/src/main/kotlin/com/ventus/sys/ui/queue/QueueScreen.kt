@@ -18,6 +18,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.ventus.sys.ui.common.verdictColor
@@ -96,7 +97,7 @@ private fun QueueList(tracks: List<QueueTrackUiItem>) {
 
 @Composable
 private fun QueueRow(track: QueueTrackUiItem) {
-    Surface(modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
+    Surface(modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp), color = Color.Transparent) {
         Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = track.name, style = MaterialTheme.typography.bodyLarge)
